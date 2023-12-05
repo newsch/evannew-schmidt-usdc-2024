@@ -14,20 +14,34 @@
 
 /**
  * Searches for matches in scanned text.
- * @param {string} searchTerm - The word or term we're searching for. 
+ * @param {string} searchTerm - The word or term we're searching for.
  * @param {JSON} scannedTextObj - A JSON object representing the scanned text.
  * @returns {JSON} - Search results.
- * */ 
+ *
+ */
  function findSearchTermInBooks(searchTerm, scannedTextObj) {
-    /** You will need to implement your search and 
-     * return the appropriate object here. */
+    if (typeof searchTerm !== "string")
+        throw new TypeError("parameter 'searchTerm' is not a string");
+    if (!Array.isArray(scannedTextObj))
+        throw new TypeError("parameter 'scannedTextObj' is not an array");
 
-    var result = {
-        "SearchTerm": "",
-        "Results": []
+    const results = [];
+    for (const book of scannedTextObj) {
+        for (const scannedLine of book.Content) {
+            if (scannedLine.Text.includes(searchTerm)) {
+                results.push({
+                    "ISBN": book.ISBN,
+                    "Page": scannedLine.Page,
+                    "Line": scannedLine.Line,
+                });
+            }
+        }
+    }
+
+    return {
+        "SearchTerm": searchTerm,
+        "Results": results,
     };
-    
-    return result; 
 }
 
 /** Example input object. */
