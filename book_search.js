@@ -36,18 +36,53 @@
         return response;
 
     for (const book of scannedTextObj) {
+        const ISBN = book.ISBN;
+
+        let lastLine = null;
+        // FIXME: assumes Content to be sorted by Page, then Line
         for (const scannedLine of book.Content) {
+            // ignore last line if there are gaps in scans
+            if (lastLine !== null && !areAdjacentLines(lastLine, scannedLine)) {
+                lastLine = null;
+            }
+
             if (scannedLine.Text.includes(searchTerm)) {
+                // direct line match
                 results.push({
-                    "ISBN": book.ISBN,
+                    ISBN,
                     "Page": scannedLine.Page,
                     "Line": scannedLine.Line,
                 });
+            } else if (lastLine?.Text.endsWith("-")) {
+                // handle cross-line/cross-page hyphenations
+                // FIXME: assumes single ascii hyphen with no whitespace at start or end of line
+                const joinedText = lastLine.Text.slice(0, -1) + scannedLine.Text;
+                if (joinedText.includes(searchTerm)) {
+                    results.push({
+                        ISBN,
+                        "Page": lastLine.Page,
+                        "Line": lastLine.Line,
+                    });
+                }
             }
+            lastLine = scannedLine;
         }
     }
 
     return response;
+}
+
+function areAdjacentLines(lastLine, nextLine) {
+    const isNextLineOnPage =
+        lastLine.Page === nextLine.Page
+        && lastLine.Line + 1 === nextLine.Line;
+
+    const isFirstLineOnNextPage =
+        lastLine.Page + 1 === nextLine.Page
+        // FIXME: assumes line numbers to be 1-based
+        && nextLine.Line === 1;
+
+    return isNextLineOnPage || isFirstLineOnNextPage;
 }
 
 /** Example input object. */
@@ -173,10 +208,13 @@ function run_tests() {
         assert_eq(twentyLeaguesOut.Results.length, test2result.Results.length);
     });
 
+    // Cross-line tests
+
     test("twentyleagues_darkness_multiline", () => {
         const ISBN = "9780000528531";
+        const SearchTerm = "darkness";
         const expected = {
-            "SearchTerm": "darkness",
+            SearchTerm,
             "Results": [
                 {
                     ISBN,
@@ -185,8 +223,13 @@ function run_tests() {
                 },
             ]
         };
-        assert_eq(expected, findSearchTermInBooks("darkness", twentyLeaguesIn),
-            "searchTerm wrapped across multiple lines is not found");
+        assert_eq(expected, findSearchTermInBooks(SearchTerm, twentyLeaguesIn),
+            "searchTerm wrapped across multiple lines should be found");
+    });
+
+    test("twentyleagues_dark-ness_returns_none", () => {
+        assert_eq(0, findSearchTermInBooks("dark-ness", twentyLeaguesIn).Results.length,
+            "hyphenated form of searchTerm should not be found");
     });
 
     // Negative tests
