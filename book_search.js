@@ -17,6 +17,7 @@
  * @param {string} searchTerm - The word or term we're searching for.
  * @param {JSON} scannedTextObj - A JSON object representing the scanned text.
  * @returns {JSON} - Search results.
+ * @throws {TypeError} Parameters are null/undefined/not required type.
  *
  */
  function findSearchTermInBooks(searchTerm, scannedTextObj) {
