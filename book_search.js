@@ -27,6 +27,14 @@
         throw new TypeError("parameter 'scannedTextObj' is not an array");
 
     const results = [];
+    const response = {
+        "SearchTerm": searchTerm,
+        "Results": results,
+    };
+
+    if (searchTerm === "")
+        return response;
+
     for (const book of scannedTextObj) {
         for (const scannedLine of book.Content) {
             if (scannedLine.Text.includes(searchTerm)) {
@@ -39,10 +47,7 @@
         }
     }
 
-    return {
-        "SearchTerm": searchTerm,
-        "Results": results,
-    };
+    return response;
 }
 
 /** Example input object. */
