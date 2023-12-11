@@ -97,22 +97,167 @@ const twentyLeaguesOut = {
  * Please add your unit tests below.
  * */
 
-/** We can check that, given a known input, we get a known output. */
-const test1result = findSearchTermInBooks("the", twentyLeaguesIn);
-if (JSON.stringify(twentyLeaguesOut) === JSON.stringify(test1result)) {
-    console.log("PASS: Test 1");
-} else {
-    console.log("FAIL: Test 1");
-    console.log("Expected:", twentyLeaguesOut);
-    console.log("Received:", test1result);
+function run_tests() {
+    let test_count = 0;
+    let failures = 0;
+
+    /** Records failure if invoking t raises an exception. */
+    function test(name, t) {
+        test_count++;
+        let err;
+        try {
+            t();
+        } catch (e) {
+            err = e;
+        }
+        const description = `Test ${test_count} ${name}`;
+        if (err) {
+            failures++;
+            console.error("FAIL:", description, err);
+        } else {
+            console.log("PASS:", description);
+        }
+    }
+
+    function assert(pass, msg) {
+        if (!pass)
+            throw new Error(msg);
+    }
+
+    function assert_eq(expected, received, msg) {
+        let are_equal;
+        if (typeof expected === "object" && typeof received === "object") {
+            // NOTE: this does not handle different ordering of fields
+            are_equal = JSON.stringify(expected) === JSON.stringify(received);
+        } else {
+            are_equal = expected === received;
+        }
+        if (!are_equal) {
+            console.error("Expected:", expected);
+            console.error("Received:", received);
+        }
+        assert(are_equal, msg);
+    }
+
+    function assert_throws(err_class, f) {
+        const expected_name = err_class.name ?? err_class.toString();
+        try {
+            f()
+        } catch (err) {
+            if (!(err instanceof err_class)) {
+                const err_name = err.name ?? err.toString();
+                throw new Error(`Thrown ${err_name} is not instanceof ${expected_name}`);
+            }
+            return;
+        }
+        throw new Error(`${expected_name} was not thrown`);
+    }
+
+    // Positive tests
+
+    /** We can check that, given a known input, we get a known output. */
+    test("twentyleagues_the_cmp", () => {
+        const test1result = findSearchTermInBooks("the", twentyLeaguesIn);
+        assert_eq(twentyLeaguesOut, test1result);
+    });
+
+    /** We could choose to check that we get the right number of results. */
+    test("twentyleagues_the_length", () => {
+        const test2result = findSearchTermInBooks("the", twentyLeaguesIn); 
+        assert_eq(twentyLeaguesOut.Results.length, test2result.Results.length);
+    });
+
+    test("twentyleagues_darkness_multiline", () => {
+        const ISBN = "9780000528531";
+        const expected = {
+            "SearchTerm": "darkness",
+            "Results": [
+                {
+                    ISBN,
+                    "Page": 31,
+                    "Line": 8
+                },
+            ]
+        };
+        assert_eq(expected, findSearchTermInBooks("darkness", twentyLeaguesIn),
+            "searchTerm wrapped across multiple lines is not found");
+    });
+
+    // Negative tests
+
+    test("twentyleagues_banana_returns_none", () => {
+        assert_eq(0, findSearchTermInBooks("banana", twentyLeaguesIn).Results.length);
+    });
+
+    test("twentyleagues_empty_returns_none", () => {
+        assert_eq(0, findSearchTermInBooks("", twentyLeaguesIn).Results.length);
+    });
+
+    // Case-sensitive tests
+
+    test("twentyleagues_i_returns_none", () => {
+        assert_eq(0, findSearchTermInBooks(" i ", twentyLeaguesIn).Results.length);
+    });
+
+    test("twentyleagues_I_returns_one", () => {
+        assert_eq(1, findSearchTermInBooks(" I ", twentyLeaguesIn).Results.length);
+    });
+
+    test("twentyleagues_canadian_returns_none", () => {
+        assert_eq(0, findSearchTermInBooks("canadian", twentyLeaguesIn).Results.length);
+    });
+
+    test("twentyleagues_Canadian_returns_one", () => {
+        assert_eq(1, findSearchTermInBooks("Canadian", twentyLeaguesIn).Results.length);
+    });
+
+    // Bad types/failed preconditions tests
+
+    test("twentyleagues_nonstring_throws", () => {
+        assert_throws(TypeError, () => {
+            findSearchTermInBooks(123, twentyLeaguesIn);
+        });
+    });
+
+    test("twentyleagues_null_search_throws", () => {
+        assert_throws(TypeError, () => {
+            findSearchTermInBooks(null, twentyLeaguesIn);
+        });
+    });
+
+    test("twentyleagues_null_books_throws", () => {
+        assert_throws(TypeError, () => {
+            findSearchTermInBooks("the", null);
+        });
+    });
+
+    test("empty_books_returns_none", () => {
+        const expected = {
+            "SearchTerm": "the",
+            "Results": []
+        };
+        assert_eq(expected, findSearchTermInBooks("the", []));
+    });
+
+    test("empty_lines_returns_none", () => {
+        const expected = {
+            "SearchTerm": "the",
+            "Results": []
+        };
+        assert_eq(expected, findSearchTermInBooks("the", [
+            {
+                "Title": "Twenty Thousand Leagues Under the Sea",
+                "ISBN": "9780000528531",
+                "Content": []
+            }
+        ]));
+    });
+
+    if (failures > 0) {
+        console.error(failures, "tests failed");
+    } else {
+        console.log("All tests passed");
+    }
 }
 
-/** We could choose to check that we get the right number of results. */
-const test2result = findSearchTermInBooks("the", twentyLeaguesIn); 
-if (test2result.Results.length == 1) {
-    console.log("PASS: Test 2");
-} else {
-    console.log("FAIL: Test 2");
-    console.log("Expected:", twentyLeaguesOut.Results.length);
-    console.log("Received:", test2result.Results.length);
-}
+run_tests();
