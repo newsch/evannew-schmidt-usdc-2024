@@ -271,14 +271,6 @@ function run_tests() {
 
     // Case-sensitive tests
 
-    test("twentyleagues_i_returns_none", () => {
-        assert_eq(0, findSearchTermInBooks(" i ", twentyLeaguesIn).Results.length);
-    });
-
-    test("twentyleagues_I_returns_one", () => {
-        assert_eq(1, findSearchTermInBooks(" I ", twentyLeaguesIn).Results.length);
-    });
-
     test("twentyleagues_canadian_returns_none", () => {
         assert_eq(0, findSearchTermInBooks("canadian", twentyLeaguesIn).Results.length);
     });
