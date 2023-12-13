@@ -197,6 +197,15 @@ function run_tests() {
         throw new Error(`${expected_name} was not thrown`);
     }
 
+    // Meta
+
+    assert_throws(TypeError, () => { throw new TypeError() });
+    assert_throws(Error, () => assert_throws(TypeError, () => {}));
+    assert(true);
+    assert_throws(Error, () => assert(false));
+    assert_eq(1, 1);
+    assert_eq({ a: 1 }, { a: 1 });
+
     // Positive tests
 
     /** We can check that, given a known input, we get a known output. */
