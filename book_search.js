@@ -32,6 +32,7 @@
         "Results": results,
     };
 
+    // FIXME: how should an empty searchTerm be handled?
     if (searchTerm === "")
         return response;
 
