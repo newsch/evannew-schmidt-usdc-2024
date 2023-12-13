@@ -36,36 +36,38 @@
         return response;
 
     for (const book of scannedTextObj) {
-        const ISBN = book.ISBN;
+        const { ISBN, Content } = book;
 
         let lastLine = null;
         // FIXME: assumes Content to be sorted by Page, then Line
-        for (const scannedLine of book.Content) {
+        for (const scannedLine of Content) {
             // ignore last line if there are gaps in scans
-            if (lastLine !== null && !areAdjacentLines(lastLine, scannedLine)) {
+            if (lastLine && !areAdjacentLines(lastLine, scannedLine)) {
                 lastLine = null;
             }
 
+            let matchedLine;
+
             if (scannedLine.Text.includes(searchTerm)) {
                 // direct line match
-                results.push({
-                    ISBN,
-                    "Page": scannedLine.Page,
-                    "Line": scannedLine.Line,
-                });
+                matchedLine = scannedLine;
             } else if (lastLine?.Text.endsWith("-")) {
-                // handle cross-line/cross-page hyphenations
+                // if last line and current line didn't match, check cross-line/cross-page hyphenations
                 // FIXME: assumes single ascii hyphen with no whitespace at start or end of line
                 const joinedText = lastLine.Text.slice(0, -1) + scannedLine.Text;
                 if (joinedText.includes(searchTerm)) {
-                    results.push({
-                        ISBN,
-                        "Page": lastLine.Page,
-                        "Line": lastLine.Line,
-                    });
+                    matchedLine = lastLine;
                 }
             }
-            lastLine = scannedLine;
+
+            if (matchedLine) {
+                const { Page, Line } = matchedLine;
+                results.push({ ISBN, Page, Line });
+                // don't check this line in the next iteration if it already matched
+                lastLine = null;
+            } else {
+                lastLine = scannedLine;
+            }
         }
     }
 
@@ -208,7 +210,7 @@ function run_tests() {
         assert_eq(twentyLeaguesOut.Results.length, test2result.Results.length);
     });
 
-    // Cross-line tests
+    // Hyphenated line-break tests
 
     test("twentyleagues_darkness_multiline", () => {
         const ISBN = "9780000528531";
@@ -227,9 +229,24 @@ function run_tests() {
             "searchTerm wrapped across multiple lines should be found");
     });
 
+    test("twentyleagues_dark-_returns_one", () => {
+        assert_eq(1, findSearchTermInBooks("dark-", twentyLeaguesIn).Results.length,
+            "hyphenated break should be searchable");
+    });
+
     test("twentyleagues_dark-ness_returns_none", () => {
         assert_eq(0, findSearchTermInBooks("dark-ness", twentyLeaguesIn).Results.length,
             "hyphenated form of searchTerm should not be found");
+    });
+
+    test("twentyleagues_momentum_returns_one", () => {
+        assert_eq(1, findSearchTermInBooks("momentum", twentyLeaguesIn).Results.length,
+            "results confused before hyphen");
+    });
+
+    test("twentyleagues_profound_returns_one", () => {
+        assert_eq(1, findSearchTermInBooks("profound", twentyLeaguesIn).Results.length,
+            "results confused after hyphen");
     });
 
     // Negative tests
